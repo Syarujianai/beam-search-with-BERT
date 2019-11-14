@@ -1,0 +1,48 @@
+import torch
+import torch.nn.functional as F
+import torch.optim as optim
+from reinforce.models.policy_net import PolicyNet
+from reinforce.models.value_net import ValueNet
+from torch.distributions import Categorical
+
+
+class A2CAgent(object):
+
+    def __init__(self, state_dim, action_number, lr):
+        self.device = torch.device("cuda:2" if torch.cuda.isavailable() else "cpu")
+        self.policy_net = PolicyNet(state_dim, action_number)
+        self.value_net = ValueNet(state_dim, 1)
+
+        self.policy_net.to(self.device)
+        self.value_net.to(self.device)
+
+        self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=lr)
+        self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
+
+    def get_action(self, state):
+        state = torch.FloatTensor(state).to(self.device)
+        logits = self.policy_net.forward(state)
+        prob = F.softmax(logits, dim=0)
+        prob = Categorical(prob)
+        action = prob.sample().cpu().detach().item()
+        return action
+
+    def optimize(self, state, action, reward):
+        reward = torch.FloatTensor(reward).to(self.device)
+        value = self.value_net.forward(state)
+        advantage = reward - value
+
+        value_loss = F.mse_loss(value, reward)
+
+        logits = self.policy_net.forward(state)
+        probs = F.softmax(logits, dim=0)
+        probs = Categorical(probs)
+        policy_loss = -probs.log_prob(action) * advantage
+
+        self.value_optimizer.zero_grad()
+        value_loss.backward()
+        self.value_optimizer.step()
+
+        self.policy_optimizer.zero_grad()
+        policy_loss.backward()
+        self.policy_optimizer.step()

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from transformers import BertTokenizer, BertModel, BertForMaskedLM
 import torch
 from torch.nn import Embedding

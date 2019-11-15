@@ -8,8 +8,8 @@ from torch.distributions import Categorical
 
 class A2CAgent(object):
 
-    def __init__(self, state_dim, action_number, lr):
-        self.device = torch.device("cuda:2" if torch.cuda.isavailable() else "cpu")
+    def __init__(self, state_dim, action_number, lr, device):
+        self.device = torch.device("cuda:%d" % device if torch.cuda.isavailable() else "cpu")
         self.policy_net = PolicyNet(state_dim, action_number)
         self.value_net = ValueNet(state_dim, 1)
 
@@ -19,9 +19,18 @@ class A2CAgent(object):
         self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=lr)
         self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
 
-    def get_action(self, state):
+    def get_action(self, state, pos, pos_index):
+        """
+        get scalar action based on state and pos constraints
+        :param state:
+        :param pos:
+        :param pos_index:
+        :return: scalar value
+        """
         state = torch.FloatTensor(state).to(self.device)
         logits = self.policy_net.forward(state)
+        start, end = pos_index[pos]
+        logits = logits[start:end + 1]
         prob = F.softmax(logits, dim=0)
         prob = Categorical(prob)
         action = prob.sample().cpu().detach().item()

@@ -21,18 +21,40 @@ def build_dict(dict_folder):
     return dict, pos_index
 
 
-def train(dict, pos_index, bert_file, sentence_file):
-    action_number = len(dict)
-    state_dim = 256 * 3
-    a2c_agent = A2CAgent(action_number, state_dim)
-    env = FunctionalEnvironment(dict, bert_file)
-    with open(sentence_file, "r") as sentences:
+def train(function_dict, pos_index, args):
+    action_number = len(function_dict)
+    state_dim = args.bert_dim + args.position_dim * 2
+    a2c_agent = A2CAgent(action_number, state_dim, args.learning_rate, args.training_device)
+    env = FunctionalEnvironment(function_dict, args.bert_file, position_dim=args.position_dim,
+                                bert_feature_device=args.bert_feature_device,
+                                bert_reward_device=args.bert_reward_device)
+    with open(args.sentence_file, "r") as sentences:
         lines = sentences.readlines()
         for line in lines:
+            line = line.replace("]", " ]")
             state = env.reset(line)
             done = False
+            state_pool = []
+            reward_pool = []
+            action_pool = []
             while not done:
                 state_emb, pos = state
+                action = a2c_agent.get_action(state_emb, pos, pos_index)
+                next_state, reward, done = env.step(action)
+
+                state_pool.append(state_emb)
+                action_pool.append(action)
+                reward_pool.append(reward)
+
+                state = next_state
+
+        accumulate = 0
+        for i in reversed(range(len(reward_pool))):
+            accumulate = accumulate * args.gamma + reward_pool[i]
+            reward_pool[i] = accumulate
+
+        for i in range(len(reward_pool)):
+            a2c_agent.optimize(state_pool[i], action_pool[i], reward_pool[i])
 
 
 if __name__ == "__main__":
@@ -40,3 +62,14 @@ if __name__ == "__main__":
     parser.add_argument("--dict_folder", type=str, help="folder containing dict files")
     parser.add_argument("--bert_file", type=str, help="bert model folder")
     parser.add_argument("--sentence_file", type=str, help="file containing the sentences")
+    parser.add_argument("--learning_rate", type=float, default=0.01)
+    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--bert_reward_device", type=int, default=0)
+    parser.add_argument("--bert_feature_device", type=int, default=1)
+    parser.add_argument("--training_device", type=int, default=2)
+    parser.add_argument("--bert_dim", type=int, default=768)
+    parser.add_argument("--position_dim", type=int, default=256)
+    args = parser.parse_args()
+
+    function_dict, pos_index = build_dict(args.dict_folder)
+    train(function_dict, pos_index, args)

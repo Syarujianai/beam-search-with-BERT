@@ -14,7 +14,7 @@ class FunctionalEnvironment(object):
     initial_state = reset(sample)
     next_state, reward, done = step(action)
     """
-    def __init__(self, dict, bert_file, max_position=256, position_dim=256):
+    def __init__(self, dict, bert_file, max_position=256, position_dim=256, bert_feature_device=0, bert_reward_device=1):
 
         self.dict = dict
 
@@ -22,12 +22,12 @@ class FunctionalEnvironment(object):
         self.tokenizer = BertTokenizer.from_pretrained(bert_file)
         self.bert = BertModel.from_pretrained(bert_file)
         self.bert.eval()
-        self.bert.to("cuda:0")
+        self.bert.to("cuda:%d" % bert_feature_device)
 
         # load bert for reward calculation
         self.bert_lm = BertForMaskedLM.from_pretrained(bert_file)
         self.bert_lm.eval()
-        self.bert.to("cuda:1")
+        self.bert.to("cuda:%d" % bert_reward_device)
 
         # list of segmented words
         self.sample = None
@@ -60,7 +60,7 @@ class FunctionalEnvironment(object):
     def step(self, action):
         """
         perform an action and update the environment
-        :param action: word id in dict
+        :param action: scalar value, word id in dict
         :return: next state, reward, done
         """
         target_functional_word = self.pos_dict[action]

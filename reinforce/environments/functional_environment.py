@@ -16,9 +16,10 @@ class FunctionalEnvironment(object):
     initial_state = reset(sample)
     next_state, reward, done = step(action)
     """
-    def __init__(self, dict, bert_file, max_position=256, position_dim=256, bert_feature_device=0, bert_reward_device=1):
+    def __init__(self, dict, pos_set, bert_file, max_position=256, position_dim=256, bert_feature_device=0, bert_reward_device=1):
 
         self.dict = dict
+        self.pos_set = pos_set
 
         # load bert model
         self.tokenizer = BertTokenizer.from_pretrained(bert_file)
@@ -65,7 +66,7 @@ class FunctionalEnvironment(object):
         :param action: scalar value, word id in dict
         :return: next state, reward, done
         """
-        target_functional_word = self.pos_dict[action]
+        target_functional_word = self.dict[action]
         reward = 0
         done = False
         next_state = None

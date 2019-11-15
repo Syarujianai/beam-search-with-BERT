@@ -18,14 +18,14 @@ def build_dict(dict_folder):
                 index += 1
         end_index = index - 1
         pos_index[pos_tag] = [start_index, end_index]
-    return dict, pos_index
+    return dict, pos_index, set(dict.keys())
 
 
-def train(function_dict, pos_index, args):
+def train(function_dict, pos_index, args, pos_set):
     action_number = len(function_dict)
     state_dim = args.bert_dim + args.position_dim * 2
     a2c_agent = A2CAgent(action_number, state_dim, args.learning_rate, args.training_device)
-    env = FunctionalEnvironment(function_dict, args.bert_file, position_dim=args.position_dim,
+    env = FunctionalEnvironment(function_dict, pos_set, args.bert_file, position_dim=args.position_dim,
                                 bert_feature_device=args.bert_feature_device,
                                 bert_reward_device=args.bert_reward_device)
     with open(args.sentence_file, "r") as sentences:
@@ -71,5 +71,5 @@ if __name__ == "__main__":
     parser.add_argument("--position_dim", type=int, default=256)
     args = parser.parse_args()
 
-    function_dict, pos_index = build_dict(args.dict_folder)
-    train(function_dict, pos_index, args)
+    function_dict, pos_index, pos_set = build_dict(args.dict_folder)
+    train(function_dict, pos_index, args, pos_set)

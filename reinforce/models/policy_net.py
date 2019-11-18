@@ -12,4 +12,5 @@ class PolicyNet(nn.Module):
     def forward(self, state):
         logits = self.fc1(state)
         logits = f.relu(logits)
+        logits = self.fc2(logits)
         return logits

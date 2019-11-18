@@ -18,6 +18,7 @@ class A2CAgent(object):
         self.policy_net.to(self.device)
         self.value_net.to(self.device)
 
+        self.optimizer = optim.Adam([self.value_net.parameters(), self.policy_net.parameters()], lr=lr)
         self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=lr)
         self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
 
@@ -52,13 +53,17 @@ class A2CAgent(object):
         probs = Categorical(probs)
         policy_loss = -probs.log_prob(action) * advantage
 
-        self.value_optimizer.zero_grad()
-        value_loss.backward()
-        self.value_optimizer.step()
-
-        self.policy_optimizer.zero_grad()
-        policy_loss.backward()
-        self.policy_optimizer.step()
+        loss = policy_loss + value_loss
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        # self.value_optimizer.zero_grad()
+        # value_loss.backward()
+        # self.value_optimizer.step()
+        #
+        # self.policy_optimizer.zero_grad()
+        # policy_loss.backward()
+        # self.policy_optimizer.step()
 
     def save(self, path):
         print("save checkpoint to ", path)

@@ -24,7 +24,7 @@ def build_dict(dict_folder):
 def train(function_dict, pos_index, args, pos_set):
     action_number = len(function_dict)
     state_dim = args.bert_dim + args.position_dim * 2
-    a2c_agent = A2CAgent(action_number, state_dim, args.learning_rate, args.training_device)
+    a2c_agent = A2CAgent(state_dim, action_number, args.learning_rate, args.training_device)
     env = FunctionalEnvironment(function_dict, pos_set, args.bert_file, position_dim=args.position_dim,
                                 bert_feature_device=args.bert_feature_device,
                                 bert_reward_device=args.bert_reward_device)

@@ -22,12 +22,14 @@ class FunctionalEnvironment(object):
         self.pos_set = pos_set
 
         # load bert model
+        print("load feature bert")
         self.tokenizer = BertTokenizer.from_pretrained(bert_file)
         self.bert = BertModel.from_pretrained(bert_file)
         self.bert.eval()
         self.bert.to("cuda:%d" % bert_feature_device)
 
         # load bert for reward calculation
+        print("load reward bert")
         self.bert_lm = BertForMaskedLM.from_pretrained(bert_file)
         self.bert_lm.eval()
         self.bert.to("cuda:%d" % bert_reward_device)

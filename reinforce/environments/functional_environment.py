@@ -55,7 +55,7 @@ class FunctionalEnvironment(object):
         """
         self.sample = sample.split()
         self.original_sample = sample.split()
-        sentence, self.function_positions = self.ensemble_sentence(sample)
+        sentence, self.function_positions = self.ensemble_sentence(self.sample)
 
         if len(self.function_positions) == 0:
             return None

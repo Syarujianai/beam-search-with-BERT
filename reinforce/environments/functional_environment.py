@@ -49,6 +49,10 @@ class FunctionalEnvironment(object):
         # position embedding layer
         self.position_embedding = Embedding(max_position, position_dim)
 
+        # print info
+        self.final_sentence = None
+        self.reward = None
+
     def reset(self, sample):
         """
         start a new session with a given example
@@ -61,7 +65,7 @@ class FunctionalEnvironment(object):
 
         if len(self.function_positions) == 0:
             return None
-        print("start sentence", sentence)
+        # print("start sentence", sentence)
         self.original_sentence = sentence
         self.sentence_embedding = self.get_sentence_embedding(sentence)
         self.function_index = 0
@@ -84,7 +88,7 @@ class FunctionalEnvironment(object):
         self.sample[sample_index] = target_functional_word
 
         updated_sentence, _ = self.ensemble_sentence(self.sample)
-        print("updated sentence", updated_sentence)
+        # print("updated sentence", updated_sentence)
         self.sentence_embedding = self.get_sentence_embedding(updated_sentence)
 
         if self.function_index < len(self.function_positions) - 1:
@@ -130,8 +134,17 @@ class FunctionalEnvironment(object):
             if final_word != original_word:
                 word_change += 1
         reward = probability_reward + word_change
-        print("final reward ", reward)
+
+        # record print info
+        self.final_sentence = final_sentence
+        self.reward = reward
+        # print("final reward ", reward)
         return reward
+
+    def get_print_info(self):
+        return {"original sentence": self.original_sentence,
+                "final sentence": self.final_sentence,
+                "reward": self.reward}
 
     def get_sentence_probability(self, sentence):
         """

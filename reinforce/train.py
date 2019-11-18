@@ -1,4 +1,5 @@
 import os
+from tqdm import tqdm
 import argparse
 from reinforce.environments.functional_environment import FunctionalEnvironment
 from reinforce.models.a2c import A2CAgent
@@ -31,34 +32,42 @@ def train(function_dict, pos_index, args, pos_set):
     print("start training samples....")
     with open(args.sentence_file, "r") as sentences:
         lines = sentences.readlines()
-        for line in lines:
-            line = line.replace("]", " ]")
-            state = env.reset(line)
-            if state is None:
-                print("neglect sentence", line)
-                continue
-            done = False
-            state_pool = []
-            reward_pool = []
-            action_pool = []
-            while not done:
-                state_emb, pos = state
-                action = a2c_agent.get_action(state_emb, pos, pos_index)
-                next_state, reward, done = env.step(action)
+        for epoch in range(args.num_epochs):
+            for line_index in tqdm(range(len(lines))):
+                line = lines[line_index]
+                line = line.replace("]", " ]")
+                state = env.reset(line)
+                if state is None:
+                    print("neglect sentence", line)
+                    continue
+                done = False
+                state_pool = []
+                reward_pool = []
+                action_pool = []
+                while not done:
+                    state_emb, pos = state
+                    action = a2c_agent.get_action(state_emb, pos, pos_index)
+                    next_state, reward, done = env.step(action)
 
-                state_pool.append(state_emb)
-                action_pool.append(action)
-                reward_pool.append(reward)
+                    state_pool.append(state_emb)
+                    action_pool.append(action)
+                    reward_pool.append(reward)
 
-                state = next_state
+                    state = next_state
 
-        accumulate = 0
-        for i in reversed(range(len(reward_pool))):
-            accumulate = accumulate * args.gamma + reward_pool[i]
-            reward_pool[i] = accumulate
+                accumulate = 0
+                for i in reversed(range(len(reward_pool))):
+                    accumulate = accumulate * args.gamma + reward_pool[i]
+                    reward_pool[i] = accumulate
 
-        for i in range(len(reward_pool)):
-            a2c_agent.optimize(state_pool[i], action_pool[i], reward_pool[i])
+                for i in range(len(reward_pool)):
+                    a2c_agent.optimize(state_pool[i], action_pool[i], reward_pool[i])
+
+                if line_index % args.print_every == 0:
+                    print(env.get_print_info())
+
+            save_path = os.path.join(args.save_dir, "checkpoint" + str(epoch))
+            a2c_agent.save(save_path)
 
 
 if __name__ == "__main__":
@@ -73,6 +82,9 @@ if __name__ == "__main__":
     parser.add_argument("--training_device", type=int, default=2)
     parser.add_argument("--bert_dim", type=int, default=768)
     parser.add_argument("--position_dim", type=int, default=256)
+    parser.add_argument("--save_dir", type=str)
+    parser.add_argument("--num_epochs", type=int, default=10)
+    parser.add_argument("--print_every", type=int, default=100)
     args = parser.parse_args()
 
     print("start build dict....")

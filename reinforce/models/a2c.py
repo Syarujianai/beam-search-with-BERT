@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -55,3 +56,13 @@ class A2CAgent(object):
         self.policy_optimizer.zero_grad()
         policy_loss.backward()
         self.policy_optimizer.step()
+
+    def save(self, path):
+        print("save checkpoint to ", path)
+        torch.save(self.policy_net, os.path.join(path, "policy.pt"))
+        torch.save(self.value_net, os.path.join(path, "value.pt"))
+
+    def load(self, path):
+        self.policy_net = torch.load(os.path.join(path, "policy.pt"))
+        self.value_net = torch.load(os.path.join(path, "value.pt"))
+

@@ -54,6 +54,10 @@ class FunctionalEnvironment(object):
         self.sample = sample
         self.original_sample = sample
         sentence, self.function_positions = self.ensemble_sentence(sample)
+
+        if len(self.function_positions) == 0:
+            return None
+        print("start sentence", sentence)
         self.original_sentence = sentence
         self.sentence_embedding = self.get_sentence_embedding(sentence)
         self.function_index = 0
@@ -76,6 +80,7 @@ class FunctionalEnvironment(object):
         self.sample[sample_index] = target_functional_word
 
         updated_sentence, _ = self.ensemble_sentence(self.sample)
+        print("updated sentence", updated_sentence)
         self.sentence_embedding = self.get_position_embedding(updated_sentence)
 
         if self.function_index < len(self.function_positions) - 1:
@@ -121,6 +126,7 @@ class FunctionalEnvironment(object):
             if final_word != original_word:
                 word_change += 1
         reward = probability_reward + word_change
+        print("final reward ", reward)
         return reward
 
     def get_sentence_probability(self, sentence):
@@ -195,6 +201,7 @@ class FunctionalEnvironment(object):
         :return: complete sentence string
                  function positions: {"sentence index", "pos tag", "sample index"}
         """
+        pos_tag = {"p", "c", "u", "e", "d"}
         words = sample.split()
         sentence = ""
         function_positions = []
@@ -207,7 +214,7 @@ class FunctionalEnvironment(object):
                 tag = elements[1][0]
                 sentence += char
                 function_position = {"sentence_index": [index, index + len(char) - 1], "pos": tag, "sample_index": i}
-                if tag in self.pos_set:
+                if tag in pos_tag:
                     function_positions.append(function_position)
                 index += len(char)
             else:

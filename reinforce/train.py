@@ -28,11 +28,15 @@ def train(function_dict, pos_index, args, pos_set):
     env = FunctionalEnvironment(function_dict, pos_set, args.bert_file, position_dim=args.position_dim,
                                 bert_feature_device=args.bert_feature_device,
                                 bert_reward_device=args.bert_reward_device)
+    print("start training samples....")
     with open(args.sentence_file, "r") as sentences:
         lines = sentences.readlines()
         for line in lines:
             line = line.replace("]", " ]")
             state = env.reset(line)
+            if state is None:
+                print("neglect sentence", line)
+                continue
             done = False
             state_pool = []
             reward_pool = []
@@ -71,5 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("--position_dim", type=int, default=256)
     args = parser.parse_args()
 
+    print("start build dict....")
     function_dict, pos_index, pos_set = build_dict(args.dict_folder)
+    print("build dict done...")
     train(function_dict, pos_index, args, pos_set)

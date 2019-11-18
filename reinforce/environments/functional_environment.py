@@ -27,14 +27,14 @@ class FunctionalEnvironment(object):
         self.tokenizer = BertTokenizer.from_pretrained(bert_file)
         self.bert = BertModel.from_pretrained(bert_file)
         self.bert.eval()
-        self.bert.to("cuda:%d" % bert_feature_device)
+        self.bert = self.bert.to("cuda:%d" % bert_feature_device)
 
         # load bert for reward calculation
         print("load reward bert")
         self.bert_reward_device = bert_reward_device
         self.bert_lm = BertForMaskedLM.from_pretrained(bert_file)
         self.bert_lm.eval()
-        self.bert.to("cuda:%d" % bert_reward_device)
+        self.bert_lm = self.bert_lm.to("cuda:%d" % bert_reward_device)
 
         # list of segmented words
         self.sample = None

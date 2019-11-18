@@ -14,7 +14,7 @@ def build_dict(dict_folder):
         with open(dict_folder + filename, "r") as f:
             lines = f.readlines()
             for line in lines:
-                dict[index] = line
+                dict[index] = line.replace("\n", "")
                 index += 1
         end_index = index - 1
         pos_index[pos_tag] = [start_index, end_index]

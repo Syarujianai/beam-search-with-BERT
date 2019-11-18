@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.autograd import Variable
 from reinforce.models.policy_net import PolicyNet
 from reinforce.models.value_net import ValueNet
 from torch.distributions import Categorical
@@ -40,6 +41,7 @@ class A2CAgent(object):
     def optimize(self, state, action, reward):
         reward = torch.FloatTensor([reward]).to(self.device)
         state = torch.FloatTensor(state).to(self.device)
+        action = Variable(torch.FloatTensor([action]).to(self.device))
         value = self.value_net.forward(state)
         advantage = reward - value
 

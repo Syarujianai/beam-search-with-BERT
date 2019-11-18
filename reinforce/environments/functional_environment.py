@@ -23,6 +23,7 @@ class FunctionalEnvironment(object):
 
         # load bert model
         print("load feature bert")
+        self.bert_feature_device = bert_feature_device
         self.tokenizer = BertTokenizer.from_pretrained(bert_file)
         self.bert = BertModel.from_pretrained(bert_file)
         self.bert.eval()
@@ -30,6 +31,7 @@ class FunctionalEnvironment(object):
 
         # load bert for reward calculation
         print("load reward bert")
+        self.bert_reward_device = bert_reward_device
         self.bert_lm = BertForMaskedLM.from_pretrained(bert_file)
         self.bert_lm.eval()
         self.bert.to("cuda:%d" % bert_reward_device)
@@ -150,8 +152,8 @@ class FunctionalEnvironment(object):
             tokens_tensor = torch.tensor([indexed_tokens])
             segments_tensors = torch.tensor([segment_ids])
 
-            tokens_tensor = tokens_tensor.to("cuda")
-            segments_tensors = segments_tensors.to("cuda")
+            tokens_tensor = tokens_tensor.to("cuda:%d" % self.bert_reward_device)
+            segments_tensors = segments_tensors.to("cuda:%d" % self.bert_reward_device)
 
             with torch.no_grad():
                 outputs = self.bert_lm(tokens_tensor, token_type_ids=segments_tensors)
@@ -188,8 +190,8 @@ class FunctionalEnvironment(object):
         tokens_tensor = torch.tensor([indexed_tokens])
         segments_tensors = torch.tensor([segment_ids])
 
-        tokens_tensor = tokens_tensor.to("cuda")
-        segments_tensors = segments_tensors.to("cuda")
+        tokens_tensor = tokens_tensor.to("cuda % d" % self.bert_feature_device)
+        segments_tensors = segments_tensors.to("cuda % d" % self.bert_feature_device)
 
         with torch.no_grad():
             outputs = self.bert(tokens_tensor, token_type_ids=segments_tensors)

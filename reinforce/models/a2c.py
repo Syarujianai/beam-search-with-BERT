@@ -9,7 +9,7 @@ from torch.distributions import Categorical
 class A2CAgent(object):
 
     def __init__(self, state_dim, action_number, lr, device):
-        self.device = torch.device("cuda:%d" % device if torch.cuda.isavailable() else "cpu")
+        self.device = torch.device("cuda:%d" % device if torch.cuda.is_available() else "cpu")
         self.policy_net = PolicyNet(state_dim, action_number)
         self.value_net = ValueNet(state_dim, 1)
 

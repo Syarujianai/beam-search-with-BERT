@@ -18,7 +18,7 @@ class A2CAgent(object):
         self.policy_net.to(self.device)
         self.value_net.to(self.device)
 
-        self.optimizer = optim.Adam(list(self.value_net.parameters()), list(self.policy_net.parameters()), lr=lr)
+        self.optimizer = optim.Adam(list(self.value_net.parameters()) + list(self.policy_net.parameters()), lr=lr)
         self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=lr)
         self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
 

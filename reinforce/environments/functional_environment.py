@@ -190,8 +190,8 @@ class FunctionalEnvironment(object):
         tokens_tensor = torch.tensor([indexed_tokens])
         segments_tensors = torch.tensor([segment_ids])
 
-        tokens_tensor = tokens_tensor.to("cuda % d" % self.bert_feature_device)
-        segments_tensors = segments_tensors.to("cuda % d" % self.bert_feature_device)
+        tokens_tensor = tokens_tensor.to("cuda:%d" % self.bert_feature_device)
+        segments_tensors = segments_tensors.to("cuda:%d" % self.bert_feature_device)
 
         with torch.no_grad():
             outputs = self.bert(tokens_tensor, token_type_ids=segments_tensors)

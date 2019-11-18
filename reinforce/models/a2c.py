@@ -38,7 +38,7 @@ class A2CAgent(object):
         return action
 
     def optimize(self, state, action, reward):
-        reward = torch.FloatTensor(reward).to(self.device)
+        reward = torch.FloatTensor([reward]).to(self.device)
         value = self.value_net.forward(state)
         advantage = reward - value
 

@@ -204,7 +204,7 @@ class FunctionalEnvironment(object):
                  function positions: {"sentence index", "pos tag", "sample index"}
         """
         pos_tag = {"p", "c", "u", "e", "d"}
-        words = sample.split()
+        words = sample
         sentence = ""
         function_positions = []
         index = 0

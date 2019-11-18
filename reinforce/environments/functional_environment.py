@@ -83,7 +83,7 @@ class FunctionalEnvironment(object):
 
         updated_sentence, _ = self.ensemble_sentence(self.sample)
         print("updated sentence", updated_sentence)
-        self.sentence_embedding = self.get_position_embedding(updated_sentence)
+        self.sentence_embedding = self.get_sentence_embedding(updated_sentence)
 
         if self.function_index < len(self.function_positions) - 1:
             self.function_index += 1
@@ -195,7 +195,7 @@ class FunctionalEnvironment(object):
             outputs = self.bert(tokens_tensor, token_type_ids=segments_tensors)
             encoded_layers = outputs[0]
             sentence_embedding = encoded_layers[0][0]
-        return sentence_embedding
+        return sentence_embedding.cpu()
 
     def ensemble_sentence(self, sample):
         """

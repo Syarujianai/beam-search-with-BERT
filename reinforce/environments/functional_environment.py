@@ -53,8 +53,8 @@ class FunctionalEnvironment(object):
         :param sample: list of tokens
         :return: initial state
         """
-        self.sample = sample
-        self.original_sample = sample
+        self.sample = sample.split()
+        self.original_sample = sample.split()
         sentence, self.function_positions = self.ensemble_sentence(sample)
 
         if len(self.function_positions) == 0:

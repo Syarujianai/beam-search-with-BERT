@@ -1,3 +1,4 @@
+from tensorboardX import SummaryWriter
 import os
 from tqdm import tqdm
 import argparse
@@ -23,6 +24,7 @@ def build_dict(dict_folder):
 
 
 def train(function_dict, pos_index, args, pos_set):
+    writer = SummaryWriter(args.save_dir)
     action_number = len(function_dict)
     state_dim = args.bert_dim + args.position_dim * 2
     a2c_agent = A2CAgent(state_dim, action_number, args.learning_rate, args.training_device)
@@ -62,6 +64,9 @@ def train(function_dict, pos_index, args, pos_set):
 
                 for i in range(len(reward_pool)):
                     a2c_agent.optimize(state_pool[i], action_pool[i], reward_pool[i])
+
+                final_reward = reward_pool[-1]
+                writer.add_scalar("reward", final_reward, epoch * len(lines) + line_index)
 
                 if line_index % args.print_every == 0:
                     print(env.get_print_info())

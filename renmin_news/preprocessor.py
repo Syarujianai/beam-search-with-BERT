@@ -2,18 +2,27 @@ import os
 import re
 import json
 
-input_file = "./2014_corpus.txt"
-output_file = "./2014_renmin_news_sentences.txt"
-vocab_file = "./2014_renmin_vocab.json"
+input_file = "./2014_corpus_deduplication.txt"
+output_file = "./2014_renmin_news_sentences_filter.txt"
+vocab_file = "./2014_renmin_vocab_filter.json"
 # vocab_file=../bert-pretrained/chinese_L-12_H-768_A-12/vocab.txt 
-count_cat = {'p': [], 'u': [], 'e': [], 'c': [], 'd': []}
+count_cat = {'/p': [], '/u': [], '/e': [], '/c': [], '/d': []}
+functional_POS_set = {'p', 'u', 'e', 'c', 'd'}
+functional_POS_sub_set = {'p', 'u', 'e', 'c', 'd', 'y'}
+
+# initialize mapping
+sub_func_POS_to_func_POS_map = {}
+for func_POS in functional_POS_sub_set:
+    if func_POS in functional_POS_set:
+        sub_func_POS_to_func_POS_map[func_POS] = func_POS
+sub_func_POS_to_func_POS_map['y'] = 'e'  # NOTE: y归入叹词e类
 
 def count_data(stat_io, func_word_count, sent_count):
     # write out vocab
     for k, v in func_word_count.items():
         for cat in count_cat.keys():
-            if re.search(r"(?=/).*", k).group()[1] == cat:
-                count_cat[cat].append((re.sub(r"(?=/).*", '', k), v))  # HACK: only store chinese word (as key)
+            if sub_func_POS_to_func_POS_map[re.search(r"(?=/).*", k).group()[1]] == cat[1]:
+                count_cat[cat].append((re.sub(r"(?=/).*", '', k), v))  # NOTE: only store word (as key)
 
     # for cat in count_cat.keys():
     #     sort_items = sorted(count_cat[cat], key=lambda x: x[1], reverse=True)
@@ -31,7 +40,6 @@ def prepare_data(in_io, out_io, stat_io):
     """
     sentence_count = 0
     line_count = 0
-    functional_POS_set = {'p', 'u', 'e', 'c', 'd'}
     functional_words_count = {}
     for line in in_io:
         line_count += 1
@@ -98,14 +106,18 @@ def prepare_data(in_io, out_io, stat_io):
             if len_sent<= 50 and len_sent >= 10:
                 # perform functional statistics
                 sentence_count += 1
+                # filter those sentences without functional word
+                is_exist_func_word = False
                 assert len(sent_POS) == len(sent)
                 for pos, word in zip(sent_POS, sent):
-                    if pos[1] in functional_POS_set:
+                    if pos[1] in functional_POS_sub_set:
+                        is_exist_func_word = True
                         if word in functional_words_count:
                             functional_words_count[word] += 1
                         else:
-                            functional_words_count[word] = 1            
-                out_io.write((' ').join(sent) + "\t" + "\n")
+                            functional_words_count[word] = 1
+                if is_exist_func_word:
+                    out_io.write((' ').join(sent) + "\t" + "\n")
     out_io.close()
     count_data(stat_io, functional_words_count, sentence_count)
     

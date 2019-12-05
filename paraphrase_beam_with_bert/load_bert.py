@@ -7,8 +7,9 @@ from tqdm import tqdm, trange
 
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset, Dataset, DataLoader, RandomSampler, SequentialSampler
-from torch.utils.data.distributed import DistributedSampler
+from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import TensorDataset, Dataset, DataLoader, SequentialSampler
 
 from transformers import BertConfig, BertTokenizer, BertForSequenceClassification, BertForMaskedLM
 from transformers import glue_convert_examples_to_features as convert_examples_to_features
@@ -39,27 +40,38 @@ class TextDataset(Dataset):
 
 
 class bert_model(object):
+
     def __init__(self):
+        # Evaluating settings
+        self.n_gpu = opt.n_gpu
+        if opt.n_gpu > 1:
+            # torch.distributed.init_process_group(backend="nccl")
+            self.device_ids = opt.device_ids
+        self.device = torch.device("cuda:"+str(opt.device_ids[0]) if torch.cuda.is_available() else "cpu")
         self.eval_batch_size = opt.eval_batch_size
-        self.device = torch.device("cuda:"+str(opt.gpu_device) if torch.cuda.is_available() else "cpu")
 
         self.num_labels = 2
         self.max_seq_length = opt.max_seq_length
         self.processor = processors["mrpc"]()
-        self.label_list = self.processor.get_labels()      
+        self.label_list = self.processor.get_labels()  
+        self.block_size = opt.block_size    
 
         # Load a trained model that you have fine-tuned in LCQMC
         config_cls = BertConfig.from_pretrained(opt.cls_output_dir, num_labels=self.num_labels, finetuning_task="mrpc")
         self.tokenizer_cls = BertTokenizer.from_pretrained(opt.cls_output_dir, do_lower_case=False)
-        self.bert_cls = BertForSequenceClassification.from_pretrained(opt.cls_output_dir, from_tf=False, config=config_cls).to(self.device)
-
-        self.block_size = opt.block_size
+        self.bert_cls = BertForSequenceClassification.from_pretrained(opt.cls_output_dir, from_tf=False, config=config_cls)
 
 		# Load a pre-training BERT
         config_mlm = BertConfig.from_pretrained(opt.mlm_output_dir)
         self.tokenizer_mlm = BertTokenizer.from_pretrained(opt.mlm_output_dir, do_lower_case=False)
-        self.bert_mlm = BertForMaskedLM.from_pretrained(opt.mlm_output_dir, from_tf=False, config=config_mlm).to(self.device)
-
+        self.bert_mlm = BertForMaskedLM.from_pretrained(opt.mlm_output_dir, from_tf=False, config=config_mlm)
+        
+        if self.n_gpu > 1:
+            self.bert_cls = DataParallel(self.bert_cls, device_ids=self.device_ids).cuda(self.device)
+            self.bert_mlm = DataParallel(self.bert_mlm, device_ids=self.device_ids).cuda(self.device)
+        else:
+            self.bert_cls = self.bert_cls.to(self.device)
+            self.bert_mlm = self.bert_mlm.to(self.device)
 
     def get_mlm_score(self, sents_beam):
         """

@@ -16,8 +16,13 @@ def parse_opt():
                         type=str,
                         required=False,
                         help="The input dataset directory.")
+    # parser.add_argument("--vocab_file_path",
+    #                     default="data/vocab.txt",
+    #                     type=str,
+    #                     required=False,
+    #                     help="The vocab file path.")
     parser.add_argument("--vocab_file_path",
-                        default="data/vocab.txt",
+                        default="data/vocab_bert.txt",
                         type=str,
                         required=False,
                         help="The vocab file path.")
@@ -42,8 +47,13 @@ def parse_opt():
                         type=str,
                         required=False,
                         help="The output directory where the model predictions and checkpoints will be written.")
+    # parser.add_argument("--mlm_output_dir",
+    #                     default="data/pretraining/",
+    #                     type=str,
+    #                     required=False,
+    #                     help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--mlm_output_dir",
-                        default="data/pretraining/",
+                        default="data/pretraining_bert/",
                         type=str,
                         required=False,
                         help="The output directory where the model predictions and checkpoints will be written.")
@@ -60,12 +70,17 @@ def parse_opt():
                                 "Sequences longer than this will be truncated, and sequences shorter \n"
                                 "than this will be padded.")
     parser.add_argument("--eval_batch_size",
-                        default=32,
+                        default=4,
                         type=int,
                         help="Total batch size for eval.")
-    parser.add_argument('--gpu_device', type=int, default=3,
-                        help="Specify GPU device id used further")
+
     parser.add_argument('--beam_size', type=int, default=5)
+
+    ## Distributed settings
+    # parser.add_argument("--local_rank", type=int, default=-1,
+    #                     help="For distributed training: local_rank")
+    parser.add_argument('--device_ids', type=list, default=[1, 2, 3],
+                        help="GPU device indices.")
 
     # parse args and check if args are valid
     args = parser.parse_args()
@@ -81,16 +96,26 @@ for key, value in opt.__dict__.items():
     opt_tb.add_row([key, value])
 print(opt_tb)
 
-# beam
+# beam search
 opt.output_beam_size = opt.beam_size
+opt.alpha = 0.001
 
-# vocab
+## ERNIE vocab
+# opt.PAD_idx = 0
+# opt.CLS_idx = 1
+# opt.SEP_idx = 2
+# opt.MASK_idx = 3
+# opt.UNK_idx = 17963
+# opt.unused1_idx = 17964
+
+## BERT vocab
 opt.PAD_idx = 0
-opt.CLS_idx = 1
-opt.SEP_idx = 2
-opt.MASK_idx = 3
-opt.UNK_idx = 17963
-opt.unused1_idx = 17964
+opt.CLS_idx = 101
+opt.SEP_idx = 102
+opt.MASK_idx = 103
+opt.UNK_idx = 100
+opt.unused1_idx = 1
+
 opt.max_len_sub_ids = 4
 with open(opt.mlm_output_dir+'config.json', 'r') as handle:
     opt.mlm_vocab_size = json.load(handle)["vocab_size"]
@@ -105,5 +130,8 @@ if torch.cuda.is_available():
 # cudnn setting
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.deterministic = True
+# CUDA_LAUNCH_BLOCKING=1
 if torch.cuda.is_available():
   opt.USE_CUDA = True
+opt.n_gpu = len(opt.device_ids)
+assert opt.n_gpu < torch.cuda.device_count()

@@ -88,35 +88,36 @@ PRETRAINED_INIT_CONFIGURATION = {
 }
 
 
-def load_vocab(vocab_file, func_dict_file):
+def load_vocab(vocab_file, func_dict_file=None):
     """Loads a vocabulary file into a dictionary."""    
     # load vocab of pretrained model
     assert os.path.exists(vocab_file)
     vocab = collections.OrderedDict()
     logger.info("Loading vocab from cached file %s", vocab_file)
     with open(vocab_file, "r", encoding="utf-8") as reader:
-        lines = reader.readlines()
         ## ERNIE
-        for line in lines:
-            tokens = line.rstrip('\n').split('\t')
-            token = tokens[0]
-            index = int(tokens[1])
-            vocab[token] = index
-        ## BERT
-        # tokens = reader.readlines()
-        # for index, token in enumerate(tokens):
-        #     token = token.rstrip('\n')
+        # lines = reader.readlines()
+        # for line in lines:
+        #     tokens = line.rstrip('\n').split('\t')
+        #     token = tokens[0]
+        #     index = int(tokens[1])
         #     vocab[token] = index
         
+        ## BERT
+        tokens = reader.readlines()
+        for index, token in enumerate(tokens):
+            token = token.rstrip('\n')
+            vocab[token] = index
+    
     # HACK: add unused tokens
     ## ERNIE
-    unused_idx = 1
-    idx = len(vocab) - 1
-    while len(vocab) < opt.mlm_vocab_size:
-        idx += 1
-        unused_idx += 1
-        vocab['[unused{:d}'.format(unused_idx)] = idx
-    print("Vocab size: {:d}".format(len(vocab)))
+    # unused_idx = 1
+    # idx = len(vocab) - 1
+    # while len(vocab) < opt.mlm_vocab_size:
+    #     idx += 1
+    #     unused_idx += 1
+    #     vocab['[unused{:d}'.format(unused_idx)] = idx
+    # print("Vocab size: {:d}".format(len(vocab)))
 
     # HACK: load extend vocab of functional word by POS tags
     if func_dict_file is not None:
@@ -241,7 +242,7 @@ class BertTokenizer(PreTrainedTokenizer):
 
     def __init__(self, vocab_file, func_dict_file=None, do_lower_case=True, do_basic_tokenize=False, never_split=None, 
                  unk_token="[UNK]", sep_token="[SEP]", pad_token="[PAD]", cls_token="[CLS]",
-                 mask_token="[MASK]", tokenize_chinese_chars=False, do_templatize_func_word=True, **kwargs):
+                 mask_token="[MASK]", tokenize_chinese_chars=False, **kwargs):
         """Constructs a BertTokenizer.
 
         Args:
@@ -287,21 +288,20 @@ class BertTokenizer(PreTrainedTokenizer):
                                                   tokenize_chinese_chars=tokenize_chinese_chars)
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab, unk_token=self.unk_token,
                                                       func_token_to_POS_tag_map=self.func_vocab["func_token_to_POS_tag_map"],
-                                                      do_tokenize_chinese_chars=tokenize_chinese_chars,
-                                                      do_templatize_func_word=do_templatize_func_word)
+                                                      do_tokenize_chinese_chars=tokenize_chinese_chars)
 
     @property
     def vocab_size(self):
         return len(self.vocab)
 
-    def _tokenize(self, text):
+    def _tokenize(self, text, do_templatize_func_word=False):
         split_tokens = []
         if self.do_basic_tokenize:
             for token in self.basic_tokenizer.tokenize(text, never_split=self.all_special_tokens):
                 for sub_token in self.wordpiece_tokenizer.tokenize(token):
                     split_tokens.append(sub_token)
         else:
-            split_tokens = self.wordpiece_tokenizer.tokenize(text)
+            split_tokens = self.wordpiece_tokenizer.tokenize(text, do_templatize_func_word)
         return split_tokens
 
     def _convert_token_to_id(self, token):
@@ -530,16 +530,15 @@ class WordpieceTokenizer(object):
     """Runs WordPiece tokenization."""
 
     def __init__(self, vocab, unk_token, max_input_chars_per_word=100, func_token_to_POS_tag_map=None, 
-                 do_tokenize_chinese_chars=False, do_templatize_func_word=False):
+                 do_tokenize_chinese_chars=False):
         self.vocab = vocab
         self.unk_token = unk_token
         self.max_input_chars_per_word = max_input_chars_per_word
         self.do_tokenize_chinese_chars = do_tokenize_chinese_chars
-        self.do_templatize_func_word = do_templatize_func_word
-        if do_templatize_func_word and func_token_to_POS_tag_map is not None:
+        if func_token_to_POS_tag_map is not None:
             self.func_token_to_POS_tag_map = func_token_to_POS_tag_map
 
-    def tokenize(self, text):
+    def tokenize(self, text, do_templatize_func_word=False):
         """Tokenizes a piece of text into its word pieces.
 
         This uses a greedy longest-match-first algorithm to perform tokenization
@@ -560,7 +559,7 @@ class WordpieceTokenizer(object):
         for token in whitespace_tokenize(text):
 
             # HACK: templatize functional words with corresponding POS tags
-            if self.do_templatize_func_word:
+            if do_templatize_func_word:
                 if token in self.func_token_to_POS_tag_map:
                     output_tokens.append(self.func_token_to_POS_tag_map[token])
                     continue

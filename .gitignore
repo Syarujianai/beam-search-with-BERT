@@ -1,3 +1,4 @@
 *.txt
-/data/
-/__pycache__/
+*.bin
+data/
+__pycache__/
